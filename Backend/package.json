@@ -1,0 +1,45 @@
+{
+  "name": "global-fire-unified-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Unified backend for Global Fire Detection & Visualization Platform: combines user management, fire data pipeline, and GIS APIs.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/src/server.js",
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx --test tests-ts/*.test.ts",
+    "init-db": "tsx src/cli.ts init-db",
+    "ingest-seed": "tsx src/cli.ts ingest-seed",
+    "ingest-firms-wfs": "tsx src/cli.ts ingest-firms-wfs",
+    "bulk-ingest": "tsx src/cli.ts bulk-ingest",
+    "migrate-db": "tsx src/db/migrate.ts",
+    "migrate-passwords": "tsx src/db/migratePasswords.ts",
+    "preview-firms-wfs": "tsx src/previewFirms.ts"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
+    "pg": "^8.13.1",
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.10.5",
+    "@types/node-cron": "^3.0.11",
+    "@types/pg": "^8.11.10",
+    "@types/swagger-ui-express": "^4.1.7",
+    "@types/ws": "^8.18.1",
+    "jsonwebtoken": "^9.0.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "ws": "^8.21.0"
+  }
+}

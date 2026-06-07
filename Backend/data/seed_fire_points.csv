@@ -1,0 +1,14 @@
+id,latitude,longitude,intensity,intensityValue,level,dateTime,locationName,confidence
+1,57.1497,-2.0943,85 kW/m2,92,HIGH,2026-05-18 01:20,Aberdeen North Forestry,0.92
+2,37.7749,-122.4194,22 kW/m2,28,LOW,2026-05-18 00:45,California Grassland,0.34
+3,-3.4653,-62.2159,61 kW/m2,68,MEDIUM,2026-05-18 01:05,Amazon Basin Edge,0.68
+4,-25.2744,133.7751,74 kW/m2,78,HIGH,2026-05-18 00:30,Central Australia Bush,0.88
+5,38.9072,-77.0369,35 kW/m2,42,MEDIUM,2026-05-18 01:12,Eastern US Woodland,0.56
+6,61.2181,73.3654,88 kW/m2,95,HIGH,2026-05-18 00:55,Siberian Taiga Belt,0.95
+7,-23.5505,-46.6333,48 kW/m2,55,MEDIUM,2026-05-18 01:18,Sao Paulo Periphery,0.61
+8,40.4168,-3.7038,52 kW/m2,58,MEDIUM,2026-05-18 00:40,Iberian Mediterranean,0.64
+9,34.0522,-118.2437,79 kW/m2,82,HIGH,2026-05-18 01:00,Southern California Hills,0.9
+10,-1.2921,36.8219,31 kW/m2,36,LOW,2026-05-18 00:22,East African Savanna,0.41
+11,55.7558,37.6173,44 kW/m2,50,MEDIUM,2026-05-18 01:08,Moscow Oblast Forest,0.53
+12,-33.8688,151.2093,67 kW/m2,72,HIGH,2026-05-18 00:48,New South Wales Fringe,0.84
+bad-coordinate,120,200,67 kW/m2,72,HIGH,2026-05-18 00:48,Rejected Example,0.84

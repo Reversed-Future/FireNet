@@ -1,0 +1,19 @@
+.env
+.venv/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
+node_modules/
+coverage/
+
+# Earlier local prototype files. The official backend is Node.js + TypeScript under src/.
+app/
+tests/
+scripts/
+pyproject.toml
+requirements.txt
