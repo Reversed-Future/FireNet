@@ -21,7 +21,7 @@ export function createApp() {
 
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument))
   
-  // Firelens Data APIs
+  // FireNet Data APIs
   app.use('/api/fires', firesRouter)
   app.use('/api/ingestion', ingestionRouter)
   app.use('/api/quality', qualityRouter)

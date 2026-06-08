@@ -1,7 +1,7 @@
 export const openApiDocument = {
   openapi: '3.0.0',
   info: {
-    title: 'Firelens Data Backend',
+    title: 'FireNet Data Backend',
     version: '0.2.0',
     description: 'Node.js + TypeScript PostGIS data pipeline and API.',
   },
