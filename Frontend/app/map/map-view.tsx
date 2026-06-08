@@ -1659,8 +1659,46 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
           level: mapConfidenceToLevel(point.confidence),
           locationName: point.region || point.locationName || 'Unknown Location'
         }))
-        setLocalFirePoints(firePoints)
-        onFirePointsChange?.(firePoints)
+
+        // 合并 pending 队列中的新点（WebSocket 推送时已包含核心字段）
+        // 解决 sinceHours=24 窗口过滤掉"老火点新审批"导致新点不显示的问题
+        const queuePoints: FirePoint[] = points.map((p) => {
+          const pt = p.point as any
+          return {
+            id: String(pt.id),
+            WKT: `POINT(${pt.longitude} ${pt.latitude})`,
+            latitude: pt.latitude,
+            longitude: pt.longitude,
+            brightness: 300,
+            scan: 1.0,
+            track: 1.0,
+            acq_date: '',
+            acq_time: '',
+            acq_datetime: '',
+            confidence: 'nominal',
+            brightness_2: 290,
+            frp: 0,
+            region: null,
+            satelliteType: null,
+            uniqueKey: null,
+            source: null,
+            sourceCount: null,
+            otherSources: null,
+            level: pt.level || 'MEDIUM',
+            locationName: pt.locationName || 'Unknown Location'
+          }
+        })
+
+        // 去重合并：fetch 已含的跳过，只追加 fetch 没返回的
+        const merged: FirePoint[] = [...firePoints]
+        for (const qp of queuePoints) {
+          if (!merged.some((m) => m.id === qp.id)) {
+            merged.push(qp)
+          }
+        }
+
+        setLocalFirePoints(merged)
+        onFirePointsChange?.(merged)
 
         // 全量数据已就位，再统一飞向：单点 flyTo，多点 fitBounds
         if (mapInstance.current && mapboxRef.current) {
