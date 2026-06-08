@@ -10,7 +10,6 @@
     "build": "tsc -p tsconfig.json",
     "test": "tsx --test tests-ts/*.test.ts",
     "init-db": "tsx src/cli.ts init-db",
-    "ingest-seed": "tsx src/cli.ts ingest-seed",
     "ingest-firms-wfs": "tsx src/cli.ts ingest-firms-wfs",
     "bulk-ingest": "tsx src/cli.ts bulk-ingest",
     "migrate-db": "tsx src/db/migrate.ts",

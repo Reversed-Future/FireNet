@@ -38,7 +38,6 @@ export const config = {
   port: parseInteger(process.env.PORT, 8000),
   databaseUrl: process.env.DATABASE_URL ?? 'postgresql://firenet:firenet@localhost:5432/firenet',
   corsOrigins: parseOrigins(process.env.CORS_ORIGINS),
-  seedCsvPath: process.env.SEED_CSV_PATH ?? 'data/seed_fire_points.csv',
   firmsMapKey: process.env.FIRMS_MAP_KEY ?? '',
   firmsWfsRegion: process.env.FIRMS_WFS_REGION ?? 'SouthEast_Asia',
   firmsWfsTypename: process.env.FIRMS_WFS_TYPENAME ?? 'ms:fires_snpp_24hrs',

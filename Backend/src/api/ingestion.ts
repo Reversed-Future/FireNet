@@ -2,7 +2,6 @@ import { Router } from 'express'
 import { config } from '../config.js'
 import { pool } from '../db/pool.js'
 import { runIngestion } from '../ingestion/pipeline.js'
-import { readCsvRows } from '../ingestion/sources/csvSource.js'
 import { fetchWfsRows, supportedRegions, supportedTypenames } from '../ingestion/sources/nasaFirmsWfs.js'
 
 export const ingestionRouter = Router()
@@ -22,21 +21,6 @@ ingestionRouter.get('/runs', async (req, res, next) => {
       [limit],
     )
     res.json(result.rows.map(mapRunRow))
-  } catch (error) {
-    next(error)
-  }
-})
-
-ingestionRouter.post('/seed', async (req, res, next) => {
-  try {
-    const path = String(req.query.path ?? config.seedCsvPath)
-    const dryRun = parseBoolean(req.query.dry_run)
-    const run = await runIngestion({
-      source: 'seed_csv',
-      rows: await readCsvRows(path),
-      dryRun,
-    })
-    res.json(mapRun(run))
   } catch (error) {
     next(error)
   }

@@ -2,7 +2,6 @@ import { config } from './config.js'
 import { initDb } from './db/init.js'
 import { pool } from './db/pool.js'
 import { runIngestion } from './ingestion/pipeline.js'
-import { readCsvRows } from './ingestion/sources/csvSource.js'
 import { fetchWfsRows } from './ingestion/sources/nasaFirmsWfs.js'
 import { runBulkIngest } from './ingestion/bulkIngest.js'
 
@@ -13,13 +12,6 @@ try {
   if (command === 'init-db') {
     await initDb()
     console.log('database initialized')
-  } else if (command === 'ingest-seed') {
-    const run = await runIngestion({
-      source: 'seed_csv',
-      rows: await readCsvRows(config.seedCsvPath),
-      dryRun,
-    })
-    console.log(formatRun(run))
   } else if (command === 'ingest-firms-wfs') {
     if (!config.firmsMapKey) throw new Error('FIRMS MAP_KEY is required')
     const run = await runIngestion({
@@ -58,7 +50,6 @@ try {
   } else {
     console.log(`Available commands:
   init-db              - Initialize database schema
-  ingest-seed          - Ingest seed CSV data
   ingest-firms-wfs     - Ingest from NASA FIRMS WFS (single region/satellite)
   bulk-ingest          - Ingest from NASA FIRMS WFS (all regions/satellites)
 

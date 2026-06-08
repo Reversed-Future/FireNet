@@ -373,20 +373,26 @@ npm run dev
 #### 5.2.1 用户登录
 
 - **路径**：`POST /api/auth/login`
+- **认证**：无需
 - **请求体**：
 ```json
 {
-  "username": "string",
-  "password": "string"
+  "username": "admin",
+  "password": "password123"
 }
 ```
-- **成功响应**：
+| 字段 | 必填 | 类型 | 说明 |
+|------|------|------|------|
+| username | 是 | string | 用户名 |
+| password | 是 | string | 密码 |
+
+- **成功响应**（HTTP 200）：
 ```json
 {
   "code": 0,
   "message": "success",
   "data": {
-    "token": "jwt-token",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "user": {
       "username": "admin",
       "role": "admin",
@@ -396,44 +402,115 @@ npm run dev
 }
 ```
 
-#### 5.2.2 获取日志列表
+- **错误响应**：
+| HTTP | code | message | 触发条件 |
+|------|------|---------|----------|
+| 400 | 400 | Username and password required | 缺少 username 或 password |
+| 400 | 400 | Username or password is incorrect | 用户名或密码错误 |
+| 403 | 403 | Your account is pending approval, please try again later | 账户待审批 |
+| 403 | 403 | Your account approval has been rejected, please contact the admin | 账户已被拒绝 |
+
+#### 5.2.2 获取系统日志
 
 - **路径**：`GET /api/auth/logs`
-- **说明**：获取系统操作日志（最近 1000 条）
+- **认证**：无需
+- **查询参数**：无
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": [
+    {
+      "type": "LOGIN",
+      "operator": "admin",
+      "action": "Login",
+      "status": "SUCCESS",
+      "target": "User",
+      "timestamp": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "type": "OPERATION",
+      "operator": "admin",
+      "action": "Approve User",
+      "status": "SUCCESS",
+      "target": "User",
+      "timestamp": "2024-01-01T01:00:00.000Z"
+    }
+  ]
+}
+```
+- **说明**：返回最近 1000 条系统日志
 
-#### 5.2.3 创建日志
+#### 5.2.3 创建操作日志
 
 - **路径**：`POST /api/auth/logs`
+- **认证**：无需
 - **请求体**：
 ```json
 {
-  "username": "string",
-  "action": "string",
-  "targetType": "string",
-  "targetId": "string",
-  "targetDetails": {},
-  "status": "string"
+  "username": "admin",
+  "action": "Update Profile",
+  "targetType": "User",
+  "targetId": "1",
+  "targetDetails": { "field": "email" },
+  "status": "SUCCESS"
+}
+```
+| 字段 | 必填 | 类型 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| username | 否 | string | system | 操作者 |
+| action | 否 | string | Unknown | 操作描述 |
+| targetType | 否 | string | Unknown | 目标类型 |
+| targetId | 否 | string | - | 目标ID |
+| targetDetails | 否 | object | {} | 详情 |
+| status | 否 | string | SUCCESS | 状态 |
+
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success"
 }
 ```
 
 #### 5.2.4 获取管理员区域列表
 
 - **路径**：`GET /api/auth/admin/regions`
+- **认证**：无需
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": [
+    {
+      "id": 1,
+      "name": "Asia-Pacific",
+      "description": "Asia-Pacific region"
+    }
+  ]
+}
+```
 
 ### 5.3 火灾数据接口
 
 #### 5.3.1 获取火灾列表
 
 - **路径**：`GET /api/fires`
+- **认证**：无需
 - **查询参数**：
-  - `limit`: 每页数量（默认 100，最大 1000）
-  - `offset`: 偏移量（默认 0）
-  - `cursor`: 游标分页
-  - `bbox`: 边界框（格式：minLon,minLat,maxLon,maxLat）
-  - `sinceHours`: 最近小时数（1-720）
-  - `reviewStatus`: 审核状态（pending/approved/dismissed/all）
 
-- **成功响应**：
+| 参数 | 类型 | 必填 | 默认 | 范围 | 说明 |
+|------|------|------|------|------|------|
+| limit | integer | 否 | 100 | 1-1000 | 每页数量 |
+| offset | integer | 否 | 0 | >=0 | 偏移量 |
+| cursor | integer | 否 | - | - | 游标分页（上一页最后一条ID） |
+| bbox | string | 否 | - | - | 边界框 `minLon,minLat,maxLon,maxLat` |
+| sinceHours | integer | 否 | - | 1-720 | 最近小时数 |
+| reviewStatus | string | 否 | approved | pending/approved/dismissed/all | 审核状态 |
+
+- **成功响应**（HTTP 200）：
 ```json
 {
   "code": 0,
@@ -445,15 +522,49 @@ npm run dev
   "cursor": null,
   "nextCursor": 100,
   "hasMore": true,
-  "points": [...],
-  "data": [...]
+  "points": [
+    {
+      "id": "1",
+      "latitude": 57.1497,
+      "longitude": -2.0943,
+      "confidence": "high",
+      "source": "firms_wfs:Europe:ms:fires_snpp_24hrs",
+      "region": "Europe",
+      "satelliteType": "ms:fires_snpp_24hrs",
+      "wkt": "POINT(-2.0943 57.1497)",
+      "brightness": 320.5,
+      "scan": 1.0,
+      "track": 1.0,
+      "acqDate": "2024-01-01",
+      "acqTime": "1200",
+      "acqDatetime": "2024-01-01 12:00:00",
+      "brightness2": 295.0,
+      "brightness_2": 295.0,
+      "frp": 12.5,
+      "sourceCount": 2,
+      "otherSources": ["firms_wfs:Europe:ms:fires_noaa20_24hrs"],
+      "review_status": "approved",
+      "published": true,
+      "approved_by": "admin",
+      "approved_at": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "data": [/* 同 points */]
 }
 ```
+
+- **错误响应**：
+| HTTP | code | message | 触发条件 |
+|------|------|---------|----------|
+| 422 | 422 | bbox must be minLon,minLat,maxLon,maxLat | bbox 格式错误 |
+| 422 | 422 | bbox min values must be smaller than max values | bbox 范围错误 |
+| 422 | 422 | bbox coordinate out of range | 坐标超出范围 |
 
 #### 5.3.2 获取火灾统计
 
 - **路径**：`GET /api/fires/stats`
-- **成功响应**：
+- **认证**：无需
+- **成功响应**（HTTP 200）：
 ```json
 {
   "code": 0,
@@ -463,38 +574,148 @@ npm run dev
 }
 ```
 
-#### 5.3.3 获取已批准风险区域
+#### 5.3.3 获取已批准风险区域（公开）
 
 - **路径**：`GET /api/fires/zones`
+- **认证**：无需
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": [
+    {
+      "zoneId": "zone-demo-001",
+      "name": "Demo Zone",
+      "description": "Demo high risk zone",
+      "minLatitude": 10.0,
+      "maxLatitude": 12.0,
+      "minLongitude": 100.0,
+      "maxLongitude": 102.0,
+      "polygonCoords": "POLYGON((100 10, 102 10, 102 12, 100 12, 100 10))",
+      "riskLevel": "medium",
+      "historicalIncidents": 15,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "total": 1
+}
+```
 - **说明**：仅返回 `approval_status = 'approved'` 的区域
 
 #### 5.3.4 获取单个火灾详情
 
 - **路径**：`GET /api/fires/{fireId}`
-- **成功响应**：
+- **认证**：无需
+- **路径参数**：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| fireId | integer | 火灾事件ID |
+
+- **成功响应**（HTTP 200）：
 ```json
 {
   "code": 0,
   "message": "success",
-  "data": {...},
-  "detectedSource": "firms_wfs",
-  "nearbySources": [...]
+  "data": {
+    "id": "1",
+    "latitude": 57.1497,
+    "longitude": -2.0943,
+    "confidence": "high",
+    "source": "firms_wfs:Europe:ms:fires_snpp_24hrs",
+    "region": "Europe",
+    "satelliteType": "ms:fires_snpp_24hrs",
+    "wkt": "POINT(-2.0943 57.1497)",
+    "brightness": 320.5,
+    "scan": 1.0,
+    "track": 1.0,
+    "acqDate": "2024-01-01",
+    "acqTime": "1200",
+    "acqDatetime": "2024-01-01 12:00:00",
+    "brightness2": 295.0,
+    "brightness_2": 295.0,
+    "frp": 12.5
+  },
+  "detectedSource": "firms_wfs:Europe:ms:fires_snpp_24hrs",
+  "nearbySources": [
+    {
+      "id": 2,
+      "source": "firms_wfs:Europe:ms:fires_noaa20_24hrs",
+      "region": "Europe",
+      "satelliteType": "ms:fires_noaa20_24hrs",
+      "latitude": 57.1500,
+      "longitude": -2.0950,
+      "confidence": "high",
+      "acqDate": "2024-01-01",
+      "acqTime": "1230"
+    }
+  ]
 }
 ```
+
+- **错误响应**：
+| HTTP | code | message | 触发条件 |
+|------|------|---------|----------|
+| 422 | 422 | fire id must be numeric | fireId 非数字 |
+| 404 | 404 | fire event not found | 火灾事件不存在 |
 
 #### 5.3.5 批量导入火灾数据
 
 - **路径**：`POST /api/fires/bulk-ingest`
+- **认证**：无需
 - **查询参数**：
-  - `dryRun`: 是否模拟运行（默认 false）
-  - `regions`: 区域列表（逗号分隔）
-  - `satellites`: 卫星列表（逗号分隔）
-- **注意**：需要配置 `FIRMS_MAP_KEY`
+
+| 参数 | 类型 | 必填 | 默认 | 说明 |
+|------|------|------|------|------|
+| dryRun | boolean | 否 | false | 是否模拟运行 |
+| regions | string | 否 | - | 区域列表（逗号分隔） |
+| satellites | string | 否 | - | 卫星列表（逗号分隔） |
+
+- **请求体**：无
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "totalRegions": 3,
+    "totalSatellites": 4,
+    "totalFetched": 300,
+    "totalInserted": 250,
+    "totalUpdated": 30,
+    "totalRejected": 20,
+    "results": [
+      {
+        "region": "SouthEast_Asia",
+        "satellite": "ms:fires_snpp_24hrs",
+        "status": "success",
+        "fetched": 100,
+        "inserted": 80,
+        "updated": 20,
+        "error": null
+      }
+    ]
+  }
+}
+```
+
+- **错误响应**：
+| HTTP | code | message | 触发条件 |
+|------|------|---------|----------|
+| 400 | 400 | FIRMS_MAP_KEY is not configured. Please set it in .env file. | 未配置 FIRMS_MAP_KEY |
 
 #### 5.3.6 审核火灾记录
 
 - **路径**：`PATCH /api/fires/{fireId}/review`
-- **请求头**：`Authorization: Bearer <token>`（需要管理员权限）
+- **认证**：需要（管理员）
+- **请求头**：`Authorization: Bearer <token>`
+- **路径参数**：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| fireId | integer | 火灾事件ID |
+
 - **请求体**：
 ```json
 {
@@ -502,7 +723,12 @@ npm run dev
   "published": true
 }
 ```
-- **成功响应**：
+| 字段 | 必填 | 类型 | 说明 |
+|------|------|------|------|
+| reviewStatus | 是 | string | pending/approved/dismissed |
+| published | 否 | boolean | 是否发布（默认根据 reviewStatus 自动设置） |
+
+- **成功响应**（HTTP 200）：
 ```json
 {
   "code": 0,
@@ -514,34 +740,72 @@ npm run dev
   }
 }
 ```
+- **副作用**：通过 WebSocket 广播 `fireEventReviewed` 和 `fireEventApproved` 事件
+
+- **错误响应**：
+| HTTP | code | message | 触发条件 |
+|------|------|---------|----------|
+| 400 | 400 | reviewStatus must be one of: pending, approved, dismissed | reviewStatus 非法 |
+| 401 | 401 | Unauthorized | 未提供 Token |
+| 403 | 403 | Forbidden | 非管理员用户 |
+| 404 | 404 | fire event not found | 火灾事件不存在 |
+| 422 | 422 | fire id must be numeric | fireId 非数字 |
 
 ### 5.4 风险区域接口
 
 #### 5.4.1 获取已批准风险区域（公开）
 
 - **路径**：`GET /api/fires/zones`
-- **说明**：仅返回已批准的区域，供地图展示使用
+- **说明**：同 5.3.3，仅返回已批准区域供地图展示
 
 ### 5.5 数据导入接口
 
 #### 5.5.1 获取导入运行记录
 
 - **路径**：`GET /api/ingestion/runs`
+- **认证**：无需
 - **查询参数**：
-  - `limit`: 数量限制（1-100，默认 20）
+
+| 参数 | 类型 | 默认 | 范围 | 说明 |
+|------|------|------|------|------|
+| limit | integer | 20 | 1-100 | 数量限制 |
+
+- **成功响应**（HTTP 200）：
+```json
+[
+  {
+    "id": 1,
+    "source": "firms_wfs:SouthEast_Asia:ms:fires_snpp_24hrs",
+    "status": "success",
+    "startedAt": "2024-01-01T00:00:00.000Z",
+    "finishedAt": "2024-01-01T00:00:05.000Z",
+    "fetchedCount": 100,
+    "insertedCount": 80,
+    "updatedCount": 20,
+    "rejectedCount": 0,
+    "errorMessage": null,
+    "notes": {}
+  }
+]
+```
 
 #### 5.5.2 从 FIRMS WFS 导入
 
 - **路径**：`POST /api/ingestion/firms-wfs`
+- **认证**：无需
 - **查询参数**：
-  - `map_key`: FIRMS API Key（可选，默认使用环境变量）
-  - `region`: 区域名称
-  - `typename`: 数据类型
-  - `bbox`: 边界框
-  - `count`: 数量限制
-  - `dry_run`: 是否模拟运行
 
-- **成功响应**：
+| 参数 | 类型 | 必填 | 默认 | 说明 |
+|------|------|------|------|------|
+| map_key | string | 否 | config.firmsMapKey | FIRMS API Key |
+| region | string | 否 | SouthEast_Asia | 区域名称（见 8.1） |
+| typename | string | 否 | ms:fires_snpp_24hrs | 数据类型（见 8.2） |
+| bbox | string | 否 | -90,-180,90,180 | 边界框 |
+| count | integer | 否 | 1000 | 数量限制 |
+| dry_run | boolean | 否 | false | 是否模拟运行 |
+
+- **请求体**：无
+- **成功响应**（HTTP 200）：
 ```json
 {
   "id": 1,
@@ -558,11 +822,50 @@ npm run dev
 }
 ```
 
+- **错误响应**：
+| HTTP | code | message | 触发条件 |
+|------|------|---------|----------|
+| 400 | 400 | FIRMS MAP_KEY is required | 缺少 map_key |
+| 422 | 422 | unsupported region: xxx | region 不在支持列表 |
+| 422 | 422 | unsupported typename: xxx | typename 不在支持列表 |
+
 ### 5.6 质量统计接口
 
 #### 5.6.1 获取数据质量汇总
 
 - **路径**：`GET /api/quality/summary`
+- **认证**：无需
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "total": 1000,
+    "high_count": 200,
+    "medium_count": 500,
+    "low_count": 300,
+    "pending_count": 50,
+    "approved_count": 800,
+    "dismissed_count": 150,
+    "last_24h_count": 100,
+    "last_7d_count": 500
+  },
+  "recentRuns": [
+    {
+      "id": 1,
+      "source": "firms_wfs:SouthEast_Asia:ms:fires_snpp_24hrs",
+      "status": "success",
+      "started_at": "2024-01-01T00:00:00.000Z",
+      "finished_at": "2024-01-01T00:00:05.000Z",
+      "fetched_count": 100,
+      "inserted_count": 80,
+      "updated_count": 20,
+      "rejected_count": 0
+    }
+  ]
+}
+```
 - **说明**：返回 `fire_quality_summary` 视图数据及最近 5 次导入记录
 
 ### 5.7 管理接口
@@ -572,120 +875,425 @@ npm run dev
 ##### 用户注册
 
 - **路径**：`POST /api/manage/users/register`
+- **认证**：无需
 - **请求体**：
 ```json
 {
-  "username": "string",
-  "password": "string",
-  "role": "admin|user"
+  "username": "newuser",
+  "password": "password123",
+  "role": "user"
 }
 ```
+| 字段 | 必填 | 类型 | 说明 |
+|------|------|------|------|
+| username | 是 | string | 用户名 |
+| password | 是 | string | 密码 |
+| role | 是 | string | admin 或 user |
+
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "id": 5,
+    "username": "newuser",
+    "role": "user",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+- **错误响应**：
+| HTTP | code | message | 触发条件 |
+|------|------|---------|----------|
+| 400 | 400 | Registration parameters are incomplete! ... | 缺少必填字段 |
+| 400 | 400 | Invalid role! Must be either admin or user | role 非法 |
+| 409 | 409 | Username already registered | 用户名已存在 |
+| 500 | 500 | User registration failed | 创建失败 |
 
 ##### 获取所有用户
 
 - **路径**：`GET /api/manage/users`
+- **认证**：需要
 - **请求头**：`Authorization: Bearer <token>`
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": [
+    {
+      "id": 1,
+      "uid": "1",
+      "username": "admin",
+      "role": "admin",
+      "approvalStatus": "approved",
+      "lastLogin": "2024-01-01 00:00:00",
+      "createdAt": "2023-12-01T00:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "uid": "2",
+      "username": "newuser",
+      "role": "user",
+      "approvalStatus": "pending",
+      "lastLogin": "Never Active",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
 
 ##### 获取待审批用户
 
 - **路径**：`GET /api/manage/users/pending`
-- **请求头**：`Authorization: Bearer <token>`（需要管理员权限）
+- **认证**：需要（管理员）
+- **请求头**：`Authorization: Bearer <token>`
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": [
+    {
+      "id": 2,
+      "uid": "2",
+      "username": "newuser",
+      "role": "user",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
 
 ##### 批准用户
 
 - **路径**：`POST /api/manage/users/{username}/approve`
-- **请求头**：`Authorization: Bearer <token>`（需要管理员权限）
+- **认证**：需要（管理员）
+- **请求头**：`Authorization: Bearer <token>`
+- **路径参数**：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| username | string | 用户名 |
+
 - **请求体**：
 ```json
 {
-  "comment": "string"
+  "comment": "Approved by admin"
 }
 ```
+| 字段 | 必填 | 类型 | 说明 |
+|------|------|------|------|
+| comment | 否 | string | 审批备注 |
+
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": "User newuser approved successfully"
+}
+```
+
+- **错误响应**：
+| HTTP | code | message | 触发条件 |
+|------|------|---------|----------|
+| 404 | 404 | User does not exist or has already been approved | 用户不存在或已审批 |
 
 ##### 拒绝用户
 
 - **路径**：`POST /api/manage/users/{username}/reject`
-- **请求头**：`Authorization: Bearer <token>`（需要管理员权限）
+- **认证**：需要（管理员）
+- **请求头**：`Authorization: Bearer <token>`
 - **请求体**：
 ```json
 {
-  "comment": "string"
+  "comment": "Rejected due to invalid information"
 }
 ```
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": "User newuser has been rejected and deleted"
+}
+```
+- **说明**：被拒绝的用户会被删除
+
+- **错误响应**：
+| HTTP | code | message | 触发条件 |
+|------|------|---------|----------|
+| 404 | 404 | User does not exist | 用户不存在 |
 
 ##### 删除用户
 
 - **路径**：`DELETE /api/manage/users/{username}`
-- **请求头**：`Authorization: Bearer <token>`（需要管理员权限）
+- **认证**：需要（管理员）
+- **请求头**：`Authorization: Bearer <token>`
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": "User deleted successfully"
+}
+```
+
+- **错误响应**：
+| HTTP | code | message | 触发条件 |
+|------|------|---------|----------|
+| 404 | 404 | User does not exist | 用户不存在 |
 
 #### 5.7.2 区域管理
 
 ##### 获取所有区域
 
 - **路径**：`GET /api/manage/zones`
+- **认证**：无需
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": [
+    {
+      "id": "zone-demo-001",
+      "zoneId": "zone-demo-001",
+      "name": "Demo Zone",
+      "description": "Demo high risk zone",
+      "latitude": 11.0,
+      "longitude": 101.0,
+      "riskLevel": "medium",
+      "historicalIncidents": 15,
+      "createdBy": "admin",
+      "approvalStatus": "approved",
+      "isActive": true,
+      "lastSeenAt": "2024-01-01T00:00:00.000Z",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
 
 ##### 获取待审批区域
 
 - **路径**：`GET /api/manage/zones/pending`
-- **请求头**：`Authorization: Bearer <token>`（需要管理员权限）
+- **认证**：需要（管理员）
+- **请求头**：`Authorization: Bearer <token>`
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": [
+    {
+      "id": "zone-pending-001",
+      "zoneId": "zone-pending-001",
+      "name": "Pending Zone",
+      "description": "Pending approval",
+      "latitude": 12.0,
+      "longitude": 102.0,
+      "riskLevel": "high",
+      "historicalIncidents": 20,
+      "createdBy": "user1",
+      "approvalStatus": "pending",
+      "isActive": true,
+      "lastSeenAt": null,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
 
 ##### 创建区域
 
 - **路径**：`POST /api/manage/zones`
-- **请求头**：`Authorization: Bearer <token>`（需要管理员权限）
+- **认证**：需要（管理员）
+- **请求头**：`Authorization: Bearer <token>`
 - **请求体**：
 ```json
 {
-  "zoneId": "string",
-  "name": "string",
-  "description": "string",
-  "minLatitude": 0,
-  "maxLatitude": 0,
-  "minLongitude": 0,
-  "maxLongitude": 0,
-  "polygonCoords": "string",
-  "riskLevel": "low|medium|high",
-  "historicalIncidents": 0
+  "zoneId": "zone-new-001",
+  "name": "New Risk Zone",
+  "description": "A new high risk zone",
+  "minLatitude": 10.0,
+  "maxLatitude": 12.0,
+  "minLongitude": 100.0,
+  "maxLongitude": 102.0,
+  "polygonCoords": "POLYGON((100 10, 102 10, 102 12, 100 12, 100 10))",
+  "riskLevel": "high",
+  "historicalIncidents": 25
+}
+```
+| 字段 | 必填 | 类型 | 默认 | 说明 |
+|------|------|------|------|------|
+| zoneId | 是 | string | - | 区域ID（唯一） |
+| name | 是 | string | - | 区域名称 |
+| description | 否 | string | - | 描述 |
+| minLatitude | 是 | number | - | 最小纬度 |
+| maxLatitude | 是 | number | - | 最大纬度 |
+| minLongitude | 是 | number | - | 最小经度 |
+| maxLongitude | 是 | number | - | 最大经度 |
+| polygonCoords | 否 | string | - | 多边形坐标 |
+| riskLevel | 否 | string | medium | low/medium/high |
+| historicalIncidents | 否 | integer | 0 | 历史事件数 |
+
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "zoneId": "zone-new-001",
+    "name": "New Risk Zone",
+    "description": "A new high risk zone",
+    "minLatitude": 10.0,
+    "maxLatitude": 12.0,
+    "minLongitude": 100.0,
+    "maxLongitude": 102.0,
+    "polygonCoords": "POLYGON((100 10, 102 10, 102 12, 100 12, 100 10))",
+    "riskLevel": "high",
+    "historicalIncidents": 25,
+    "approvalStatus": "pending",
+    "isActive": true,
+    "createdBy": "admin",
+    "lastSeenAt": null,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
 }
 ```
 
 ##### 批准区域
 
 - **路径**：`POST /api/manage/zones/{zoneId}/approve`
-- **请求头**：`Authorization: Bearer <token>`（需要管理员权限）
+- **认证**：需要（管理员）
+- **请求头**：`Authorization: Bearer <token>`
+- **请求体**：无
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": "Zone zone-new-001 approved"
+}
+```
+- **副作用**：通过 WebSocket 广播 `zoneApproved` 事件
+
+- **错误响应**：
+| HTTP | code | message | 触发条件 |
+|------|------|---------|----------|
+| 404 | 404 | Zone not found or already approved | 区域不存在或已审批 |
 
 ##### 拒绝区域
 
 - **路径**：`POST /api/manage/zones/{zoneId}/reject`
-- **请求头**：`Authorization: Bearer <token>`（需要管理员权限）
+- **认证**：需要（管理员）
+- **请求头**：`Authorization: Bearer <token>`
+- **请求体**：无
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": "Zone zone-new-001 rejected"
+}
+```
+
+- **错误响应**：
+| HTTP | code | message | 触发条件 |
+|------|------|---------|----------|
+| 404 | 404 | Zone not found | 区域不存在 |
 
 ##### 删除区域
 
 - **路径**：`DELETE /api/manage/zones/{zoneId}`
-- **请求头**：`Authorization: Bearer <token>`（需要管理员权限）
+- **认证**：需要（管理员）
+- **请求头**：`Authorization: Bearer <token>`
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success"
+}
+```
+
+- **错误响应**：
+| HTTP | code | message | 触发条件 |
+|------|------|---------|----------|
+| 404 | 404 | Zone not found. | 区域不存在 |
 
 #### 5.7.3 自动计算风险区域
 
 ##### 计算预览
 
 - **路径**：`POST /api/manage/regions/auto-calculate`
-- **请求头**：`Authorization: Bearer <token>`（需要管理员权限）
+- **认证**：需要（管理员）
+- **请求头**：`Authorization: Bearer <token>`
 - **请求体**：
 ```json
 {
   "sinceHours": 168
 }
 ```
-- **说明**：根据历史火灾数据计算高风险区域（不保存）
+| 字段 | 必填 | 类型 | 默认 | 说明 |
+|------|------|------|------|------|
+| sinceHours | 否 | integer | 168 | 时间范围（小时） |
+
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "zones": [
+      {
+        "zoneId": "preview_11.00_101.00",
+        "name": "HIGH Risk Zone (15 fires)",
+        "minLat": 10.0,
+        "maxLat": 12.0,
+        "minLon": 100.0,
+        "maxLon": 102.0,
+        "centerLat": 11.0,
+        "centerLon": 101.0,
+        "radiusKm": 50.5,
+        "riskLevel": "high",
+        "incidentCount": 15
+      }
+    ],
+    "message": "Calculated 1 high risk zone(s)"
+  }
+}
+```
+- **说明**：根据历史火灾数据计算高风险区域（不保存到数据库）
 
 ##### 同步到数据库
 
 - **路径**：`POST /api/manage/regions/sync`
-- **请求头**：`Authorization: Bearer <token>`（需要管理员权限）
+- **认证**：需要（管理员）
+- **请求头**：`Authorization: Bearer <token>`
 - **请求体**：
 ```json
 {
   "sinceHours": 168
+}
+```
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "created": 3,
+    "updated": 1,
+    "deactivated": 0,
+    "total": 4
+  }
 }
 ```
 - **说明**：将计算结果同步到数据库
@@ -695,15 +1303,70 @@ npm run dev
 ##### 导出数据
 
 - **路径**：`GET /api/manage/export`
-- **请求头**：`Authorization: Bearer <token>`（需要管理员权限）
-- **响应**：下载 JSON.GZ 文件
-- **文件名格式**：`fire-detection-backup-<timestamp>.json.gz`
+- **认证**：需要（管理员）
+- **请求头**：`Authorization: Bearer <token>`
+- **请求体**：无
+- **成功响应**：
+  - **HTTP 状态码**：200
+  - **Content-Type**：`application/gzip`
+  - **Content-Disposition**：`attachment; filename="fire-detection-backup-<timestamp>.json.gz"`
+  - **Content-Encoding**：`gzip`
+  - **文件内容**（解压后为 JSON）：
+```json
+{
+  "version": 1,
+  "exportedAt": "2024-01-01T00:00:00.000Z",
+  "tables": {
+    "ingestion_runs": [...],
+    "fire_events": [...],
+    "users": [...],
+    "user_tokens": [...],
+    "system_logs": [...],
+    "high_risk_zones": [...]
+  }
+}
+```
+- **说明**：导出所有表的完整数据，使用 gzip 压缩
 
 ##### 导入数据
 
 - **路径**：`POST /api/manage/import`
-- **请求头**：`Authorization: Bearer <token>`（需要管理员权限）
-- **请求体**：导出的备份数据（JSON 格式）
+- **认证**：需要（管理员）
+- **请求头**：`Authorization: Bearer <token>`、`Content-Type: application/json`
+- **请求体**（由 export 导出的 JSON 数据）：
+```json
+{
+  "version": 1,
+  "exportedAt": "2024-01-01T00:00:00.000Z",
+  "tables": {
+    "fire_events": [...],
+    "users": [...],
+    "high_risk_zones": [...]
+  }
+}
+```
+| 字段 | 必填 | 类型 | 说明 |
+|------|------|------|------|
+| version | 是 | number | 备份文件版本 |
+| exportedAt | 是 | string | 导出时间 |
+| tables | 是 | object | 各表数据 |
+
+- **成功响应**（HTTP 200）：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "importedAt": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+- **副作用**：会清空现有数据并使用事务导入（导入失败自动回滚）
+
+- **错误响应**：
+| HTTP | code | message | 触发条件 |
+|------|------|---------|----------|
+| 400 | 400 | Invalid backup file format | 缺少 version 或 tables |
 
 ### 5.8 WebSocket 接口
 
@@ -977,9 +1640,11 @@ npm run migrate-db
 |------|------|------|
 | 1.0.0 | 2024-01-01 | 初始版本 |
 | 1.1.0 | 2026-06-08 | 补全 API 文档和数据库表结构，修正数据库初始化命令 |
+| 1.2.0 | 2026-06-08 | 全面补全 API 请求体、响应体、错误码、WebSocket 事件等所有内容 |
+| 1.3.0 | 2026-06-08 | 移除 Mock 数据（seed CSV）相关内容 |
 
 ---
 
-**文档版本**: v1.1.0  
+**文档版本**: v1.3.0  
 **最后更新**: 2026-06-08  
 **适用系统**: Global Fire Detection & Visualization Platform
