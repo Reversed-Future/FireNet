@@ -269,7 +269,7 @@ export async function upsertFireEvents(
         [record.uniqueKey],
       );
 
-      if (existingCheck.rowCount > 0) {
+      if ((existingCheck.rowCount ?? 0) > 0) {
         const existingRecord = existingCheck.rows[0];
 
         // If existing is 24h data and new is 7d data, skip

@@ -274,8 +274,11 @@ function parseBbox(value: unknown): [number, number, number, number] | undefined
   return [minLon, minLat, maxLon, maxLat]
 }
 
-function clampInteger(value: unknown, fallback: number, min: number, max: number): number {
-  const parsed = Number.parseInt(String(value ?? ''), 10)
+function clampInteger(value: unknown, fallback: number, min: number, max: number): number
+function clampInteger(value: unknown, fallback: undefined, min: number, max: number): number | undefined
+function clampInteger(value: unknown, fallback: number | undefined, min: number, max: number): number | undefined {
+  if (value === undefined || value === null || value === '') return fallback
+  const parsed = Number.parseInt(String(value), 10)
   if (!Number.isFinite(parsed)) return fallback
   return Math.max(min, Math.min(max, parsed))
 }

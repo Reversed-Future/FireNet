@@ -219,6 +219,13 @@ export default function MapPage() {
     setFirePoints(filtered)
   }, [satelliteType, region, confidence, ti4Min, ti4Max, ti5Min, ti5Max, frpMin, frpMax])
 
+  // 接收来自 MapRadarView 的全量数据更新（WebSocket 推送触发）
+  // fireEventApproved / fireEventsUpdated 时 MapRadarView 会重新拉全量并回调此函数
+  const handleFirePointsChange = useCallback((points: FirePoint[]) => {
+    setAllFirePoints(points)
+    applyFilters(points)
+  }, [applyFilters])
+
   // 手动刷新数据
   const refreshData = useCallback(async () => {
     setIsLoading(true)
@@ -479,7 +486,7 @@ export default function MapPage() {
 
       
 
-      <MapRadarView vizMode={vizMode} firePoints={firePoints} selectedPoint={selectedPoint} onSelectedPointChange={setSelectedPoint} onFirePointAdd={addFirePointToCache} />
+      <MapRadarView vizMode={vizMode} firePoints={firePoints} selectedPoint={selectedPoint} onSelectedPointChange={setSelectedPoint} onFirePointAdd={addFirePointToCache} onFirePointsChange={handleFirePointsChange} />
     </main>
   )
 }

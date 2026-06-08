@@ -164,7 +164,7 @@ export class PlatformRepository {
     const createdLog: SystemLog = { ...log, id: row.id, createdAt: row.created_at }
     
     notificationServer.broadcastLogAdded({
-      id: createdLog.id,
+      id: String(createdLog.id),
       logType: createdLog.logType,
       operator: createdLog.operator,
       action: createdLog.action,

@@ -24,16 +24,21 @@ for (const [index, row] of rows.entries()) {
   else accepted.push(result)
 }
 
-const sample = accepted.slice(0, 3).map((item) => ({
-  sourceEventId: item.sourceEventId,
-  latitude: item.latitude,
-  longitude: item.longitude,
-  level: item.level,
-  intensityValue: item.intensityValue,
-  confidence: item.confidence,
-  detectedAt: item.detectedAt.toISOString(),
-  locationName: item.locationName,
-}))
+const sample = accepted.slice(0, 3).map((item) => {
+  const brightness = item.brightness ?? 0
+  const level = brightness >= 340 ? 'HIGH' : brightness >= 320 ? 'MEDIUM' : 'LOW'
+  const detectedAt = item.acqDatetime ?? new Date()
+  return {
+    sourceEventId: item.sourceEventId,
+    latitude: item.latitude,
+    longitude: item.longitude,
+    level,
+    intensityValue: brightness,
+    confidence: item.confidence,
+    detectedAt: detectedAt.toISOString(),
+    locationName: item.region ?? 'Unknown Location',
+  }
+})
 
 console.log(JSON.stringify({
   source,

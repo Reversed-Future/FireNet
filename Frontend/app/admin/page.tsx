@@ -663,6 +663,7 @@ export default function AdminPage() {
   const handleApproveEvent = async (eventId: number | string) => {
     if (!canPerform('edit_fire_events')) {
       setMessage('Permission denied for event approval.')
+      setMessageType('error')
       return
     }
     const updatedEvent = fireEvents.find((e) => e.id === eventId)
@@ -689,6 +690,7 @@ export default function AdminPage() {
       status: 'success'
     })
     setMessage('Event approved and published.')
+    setMessageType('success')
   }
 
   const handleDismissEvent = async (eventId: number | string) => {
@@ -719,6 +721,7 @@ export default function AdminPage() {
       status: 'success'
     })
     setMessage('Event dismissed and flagged.')
+    setMessageType('error')
   }
 
   const handleAddUser = async (newUser: any) => {

@@ -146,6 +146,12 @@ const getPublishedFireEvents = async (): Promise<FirePoint[]> => {
             confidence: e.confidence || 'nominal',
             brightness_2: e.brightness_2 || 290,
             frp: e.frp || 0,
+            region: e.region ?? null,
+            satelliteType: e.satelliteType ?? null,
+            uniqueKey: e.uniqueKey ?? null,
+            source: e.source ?? null,
+            sourceCount: e.sourceCount ?? null,
+            otherSources: e.otherSources ?? null,
             level: e.level,
             locationName: e.locationName
           }))
@@ -218,6 +224,12 @@ const convertEventToFirePoint = (event: any): FirePoint => ({
   confidence: event.confidence || 'nominal',
   brightness_2: event.brightness_2 || 290,
   frp: event.frp || event.intensityValue || 0,
+  region: event.region ?? null,
+  satelliteType: event.satelliteType ?? null,
+  uniqueKey: event.uniqueKey ?? null,
+  source: event.source ?? null,
+  sourceCount: event.sourceCount ?? null,
+  otherSources: event.otherSources ?? null,
   level: event.level,
   locationName: event.locationName
 })
@@ -329,7 +341,7 @@ function setupGlobeAtmosphere(map: Map, styleKey: MapStyleKey) {
   })
 }
 
-const CLUSTER_MAX_ZOOM = 9
+const CLUSTER_MAX_ZOOM = 10
 
 function createFireMarkerElement(point: FirePoint, onSelect: (p: FirePoint) => void) {
   const el = document.createElement('div')
@@ -370,7 +382,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
   const firePointsRef = useRef<FirePoint[]>([])
   const prevStyleRef = useRef<MapStyleKey | null>(null)
   // 跟踪已显示的审批通知 ID（防止重复弹出）
-  const shownNotificationsRef = useRef<Map<string, number>>(new Map())
+  const shownNotificationsRef = useRef<globalThis.Map<string, number>>(new globalThis.Map())
   // 跟踪当前所有活跃的通知元素
   const activeNotificationsRef = useRef<Set<HTMLElement>>(new Set())
   // 待批量显示的火点队列
@@ -460,7 +472,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
   
   const zonesGeoJSON = useMemo(() => {
     const features = zones.map((zone) => {
-      const coordinates = zone.polygonCoords 
+      const coordinates = zone.polygonCoords
         ? JSON.parse(zone.polygonCoords)
         : [
             [zone.minLongitude, zone.minLatitude],
@@ -469,9 +481,9 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
             [zone.minLongitude, zone.maxLatitude],
             [zone.minLongitude, zone.minLatitude]
           ]
-      
+
       return {
-        type: 'Feature',
+        type: 'Feature' as const,
         properties: {
           zoneId: zone.zoneId,
           name: zone.name,
@@ -480,14 +492,14 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
           historicalIncidents: zone.historicalIncidents
         },
         geometry: {
-          type: 'Polygon',
+          type: 'Polygon' as const,
           coordinates: [coordinates]
         }
       }
     })
-    
+
     return {
-      type: 'FeatureCollection',
+      type: 'FeatureCollection' as const,
       features
     }
   }, [zones])
@@ -648,7 +660,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
         id: 'fire-heatmap',
         type: 'heatmap',
         source: 'fire-points',
-        maxzoom: 12,
+        maxzoom: 18,
         paint: {
           'heatmap-weight': [
             'interpolate',
@@ -670,7 +682,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
             1, 'rgba(220,38,38,1)'
           ],
           'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 18, 4, 35, 8, 55, 12, 80],
-          'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 0, 0.85, 10, 0.55]
+          'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 0, 0.85, 10, 0.55, 18, 0]
         }
       })
     }
@@ -826,7 +838,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     initialSetVisibility('high-risk-zones-border', showZones)
     
     // 根据当前缩放级别设置火点显示方式
-    updateDisplayByZoom(map, mapboxRef.current || mapboxgl, firePointsRef.current)
+    updateDisplayByZoom(map, mapboxRef.current!, firePointsRef.current)
   }, [fireGeoJSON, maxIntensity, vizMode, zonesGeoJSON, showZones, updateDisplayByZoom])
 
   const seedParticles = useCallback((points: FirePoint[]) => {
@@ -948,9 +960,9 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
           
           const fireSource = map.getSource('fire-points') as GeoJSONSource
           fireSource.getClusterExpansionZoom(clusterId, (err, zoom) => {
-            if (err || zoom === undefined) return
-            const coordinates = features[0].geometry.type === 'Point' 
-              ? features[0].geometry.coordinates as [number, number] 
+            if (err || zoom == null) return
+            const coordinates: [number, number] = features[0].geometry.type === 'Point'
+              ? features[0].geometry.coordinates as [number, number]
               : [0, 0]
             map.easeTo({
               center: coordinates,
@@ -973,8 +985,9 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
         map.on('mouseleave', 'fire-points-layer', () => { map.getCanvas().style.cursor = '' })
         
         // 添加 zoom 监听器，根据缩放级别切换显示方式
+        // 使用 firePointsRef.current 读取最新数据，避免闭包陷阱
         map.on('zoom', () => {
-          updateDisplayByZoom(map, mapboxgl, firePoints)
+          updateDisplayByZoom(map, mapboxgl, firePointsRef.current)
         })
       })
       .catch((err: Error) => {
@@ -1132,6 +1145,12 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
           confidence: point.confidence || 'nominal',
           brightness_2: point.brightness_2 || point.brightness2 || 290,
           frp: point.frp || 0,
+          region: point.region ?? null,
+          satelliteType: point.satelliteType ?? null,
+          uniqueKey: point.uniqueKey ?? null,
+          source: point.source ?? null,
+          sourceCount: point.sourceCount ?? null,
+          otherSources: point.otherSources ?? null,
           level: mapConfidenceToLevel(point.confidence),
           locationName: point.region || point.locationName || 'Unknown Location'
         }))
@@ -1233,6 +1252,12 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
           confidence: point.confidence || 'nominal',
           brightness_2: point.brightness_2 || point.brightness2 || 290,
           frp: point.frp || 0,
+          region: point.region ?? null,
+          satelliteType: point.satelliteType ?? null,
+          uniqueKey: point.uniqueKey ?? null,
+          source: point.source ?? null,
+          sourceCount: point.sourceCount ?? null,
+          otherSources: point.otherSources ?? null,
           level: mapConfidenceToLevel(point.confidence),
           locationName: point.region || point.locationName || 'Unknown Location'
         })) || []
@@ -1481,8 +1506,8 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
       // 批量摘要通知
       const zones = data.zones
       const riskCount = { HIGH: 0, MEDIUM: 0, LOW: 0 }
-      zones.forEach(z => {
-        const r = z.riskLevel || 'MEDIUM'
+      zones.forEach((z: any) => {
+        const r: 'HIGH' | 'MEDIUM' | 'LOW' = z.riskLevel || 'MEDIUM'
         if (r === 'HIGH' || r === 'MEDIUM' || r === 'LOW') {
           riskCount[r]++
         } else {
@@ -1625,6 +1650,12 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
           confidence: point.confidence || 'nominal',
           brightness_2: point.brightness_2 || point.brightness2 || 290,
           frp: point.frp || 0,
+          region: point.region ?? null,
+          satelliteType: point.satelliteType ?? null,
+          uniqueKey: point.uniqueKey ?? null,
+          source: point.source ?? null,
+          sourceCount: point.sourceCount ?? null,
+          otherSources: point.otherSources ?? null,
           level: mapConfidenceToLevel(point.confidence),
           locationName: point.region || point.locationName || 'Unknown Location'
         }))
