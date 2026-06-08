@@ -471,8 +471,6 @@ export default function AdminPage() {
     setIngesting(true)
 
     try {
-      // region: 'All' 或空 -> 拉取所有区域；typename: 'all' 或空 -> 拉取所有卫星
-      // count: 留空 / 'all' / '0' 表示获取所有数据
       const params = new URLSearchParams()
       params.set('region', region || 'All')
       params.set('typename', typename || 'all')
@@ -490,11 +488,9 @@ export default function AdminPage() {
         setToastType('success')
         setShowToast(true)
         await loadFireEvents(1, fireLimit)
-        // 重新拉取 DataAudit 计数（如果已挂载则不重复挂载，依赖组件内 effect）
         try {
           window.dispatchEvent(new CustomEvent('fire-admin:data-audit-refresh'))
         } catch {}
-        // 获取完成后自动刷新当前页面，确保所有视图都拿到最新数据
         if (typeof window !== 'undefined') {
           setTimeout(() => {
             window.location.reload()
@@ -513,7 +509,6 @@ export default function AdminPage() {
       setShowToast(true)
       setIngesting(false)
     }
-    // 注意：成功路径下，setTimeout 内的 reload 会卸载组件，ingesting 状态无需再解除
   }
 
   const handleLogin = async ({ username, password }: { username: string, password: string }) => {
@@ -1019,11 +1014,10 @@ export default function AdminPage() {
       let data: any
       
       if (apiClient.isGzipFile(file.name)) {
-        // 是gzip压缩文件，先解压
         setBackupStatus('Decompressing file...')
         data = await apiClient.decompressGzip(file)
       } else {
-        // 普通JSON文件
+        // normal JSON file
         const reader = new FileReader()
         data = await new Promise((resolve, reject) => {
           reader.onload = () => {
@@ -1041,7 +1035,7 @@ export default function AdminPage() {
       setBackupStatus('Importing data...')
       await apiClient.importData(data)
       
-      // 刷新数据
+      // refresh
       const [usersRes, zonesRes] = await Promise.all([
         apiClient.getUsers(),
         apiClient.getZones()
@@ -1174,7 +1168,7 @@ export default function AdminPage() {
                       <div className="review-notification-header">
                         <div className="review-notification-title">
                           <span className="notification-icon">📋</span>
-                          <span>审核数据更新通知</span>
+                          <span>Application Data Update Notification</span>
                         </div>
                         <button className="review-notification-close" onClick={handleReviewNotificationClose}>
                           ✕
@@ -1183,16 +1177,16 @@ export default function AdminPage() {
                       
                       <div className="review-notification-summary">
                         <div className="summary-item">
-                          <span className="summary-label">待处理数据数量：</span>
-                          <span className="summary-value">{pendingReviews.length} 条</span>
+                          <span className="summary-label">Number of Pending Reviews：</span>
+                          <span className="summary-value">{pendingReviews.length} Reviews</span>
                         </div>
                         <div className="summary-item">
-                          <span className="summary-label">数据来源：</span>
-                          <span className="summary-value">卫星监测系统</span>
+                          <span className="summary-label">Source：</span>
+                          <span className="summary-value">Satellite Monitoring System</span>
                         </div>
                         <div className="summary-item">
-                          <span className="summary-label">数据类型：</span>
-                          <span className="summary-value">火灾事件</span>
+                          <span className="summary-label">Data Type：</span>
+                          <span className="summary-value">Fire Event</span>
                         </div>
                       </div>
                       
@@ -1209,12 +1203,12 @@ export default function AdminPage() {
                                 <span className="review-item-time">{review.acq_datetime}</span>
                               </div>
                             </div>
-                            <span className="review-item-action">查看 →</span>
+                            <span className="review-item-action">Check →</span>
                           </div>
                         ))}
                         {pendingReviews.length > 5 && (
                           <div className="review-item-more">
-                            ... 还有 {pendingReviews.length - 5} 条数据
+                            ... There are {pendingReviews.length - 5} more reviews
                           </div>
                         )}
                       </div>
@@ -1224,10 +1218,10 @@ export default function AdminPage() {
                           setActiveMenu('data-audit')
                           handleReviewNotificationClose()
                         }}>
-                          查看全部 ({pendingReviews.length})
+                          Check All ({pendingReviews.length})
                         </button>
                         <button className="btn btn-primary" onClick={handleReviewNotificationClose}>
-                          稍后处理
+                          Process Later
                         </button>
                       </div>
                     </div>

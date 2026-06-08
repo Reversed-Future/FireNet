@@ -499,15 +499,15 @@ manageRouter.post('/import', authenticateToken, requireAdmin, async (req: Authen
       return res.status(400).json({ code: 400, message: 'Invalid backup file format' })
     }
 
-    // 清空表并导入
+    // Clear tables before import
     for (const table of TABLES) {
       const tableName = table.name
       const data = tables[tableName]
       if (Array.isArray(data) && data.length > 0) {
-        // 清空表
+        // Clear table data
         await client.query(`TRUNCATE TABLE ${tableName} CASCADE`)
 
-        // 分批插入数据，每批最多1000行
+        // Import data in batches
         const batchSize = 1000
         const columns = Object.keys(data[0])
         
@@ -537,7 +537,7 @@ manageRouter.post('/import', authenticateToken, requireAdmin, async (req: Authen
           )
         }
 
-        // 重置序列
+        // Reset sequence after import
         if (table.sequence) {
           const seqResult = await client.query(`SELECT max(id) FROM ${tableName}`)
           const maxId = seqResult.rows[0]?.max || 0

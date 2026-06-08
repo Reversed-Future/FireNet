@@ -1205,18 +1205,18 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
         } else if (message.type === 'zoneApproved' && message.zone) {
           console.log('[Map] zoneApproved received:', message.zone)
           const zone = message.zone
-          // 收集到待飞向队列，重置定时器
+
           pendingFlyToZonesRef.current.push(zone)
-          // 重置批量飞向定时器
+
           if (zoneFlyTimerRef.current !== null) {
             clearTimeout(zoneFlyTimerRef.current)
           }
           zoneFlyTimerRef.current = window.setTimeout(() => {
             flushPendingFlyToZones()
           }, BATCH_FLY_DELAY)
-          // 显示通知
+
           showZoneApprovedAlert(zone)
-          // 重新加载 zones
+
           loadZones()
         }
       } catch (error) {
@@ -1275,7 +1275,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
   const showApprovalAlert = (point: FirePoint) => {
     console.log('[Map] showApprovalAlert called with point:', point)
 
-    // 去重检查：如果该火点 ID 在去重窗口内已经弹过通知，则跳过
+
     const pointId = String(point.id)
     const now = Date.now()
     const lastShown = shownNotificationsRef.current.get(pointId)
@@ -1283,9 +1283,9 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
       console.log('[Map] Notification deduplicated for fire point:', pointId)
       return
     }
-    // 记录本次弹出时间
+
     shownNotificationsRef.current.set(pointId, now)
-    // 清理过期的去重记录
+
     for (const [id, timestamp] of shownNotificationsRef.current.entries()) {
       if (now - timestamp > NOTIFICATION_DEDUPE_WINDOW) {
         shownNotificationsRef.current.delete(id)
@@ -1294,28 +1294,26 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
 
     setShowHUD(true)
 
-    // 批量通知收集：将新的火点加入待批量显示的队列
+
     pendingBatchPointsRef.current.push({
       point,
       addedAt: now,
     })
-    // 如果已经有待显示的批量通知（已有 timer 在等待），不重复启动 timer
+
     if (batchNotificationTimerRef.current !== null) {
       return
     }
-    // 启动批量通知延迟显示：等待 2 秒收集更多火点
+
     batchNotificationTimerRef.current = window.setTimeout(() => {
       flushBatchNotification()
     }, BATCH_NOTIFICATION_DELAY)
   }
 
-  /**
-   * 显示 zone 批准通知：批量聚合显示（与火点审批一致）
-   */
+
   const showZoneApprovedAlert = (zone: any) => {
     setShowHUD(true)
 
-    // 去重检查
+
     const zoneId = String(zone.zoneId)
     const now = Date.now()
     const lastShown = shownNotificationsRef.current.get(`zone-${zoneId}`)
@@ -1325,24 +1323,22 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     }
     shownNotificationsRef.current.set(`zone-${zoneId}`, now)
 
-    // 加入批量队列
+
     pendingBatchZonesRef.current.push({
       zone,
       addedAt: now,
     })
-    // 如果已有 timer，不重复启动
+
     if (batchZoneNotificationTimerRef.current !== null) {
       return
     }
-    // 启动批量通知延迟显示
+
     batchZoneNotificationTimerRef.current = window.setTimeout(() => {
       flushBatchZoneNotification()
     }, BATCH_NOTIFICATION_DELAY)
   }
 
-  /**
-   * 批量飞向：将收集到的所有 zones 合并飞向总边界
-   */
+
   const flushPendingFlyToZones = () => {
     zoneFlyTimerRef.current = null
     const zones = pendingFlyToZonesRef.current.splice(0)
@@ -1350,7 +1346,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
 
     if (!mapInstance.current || !mapboxRef.current) return
 
-    // 找出最大的 zone（按面积或 incidentCount）
+
     let largestZone = zones[0]
     let largestSize = 0
     zones.forEach(zone => {
@@ -1358,7 +1354,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
       const height = zone.maxLatitude - zone.minLatitude
       const area = width * height
       const incidents = zone.historicalIncidents || 0
-      // 综合考虑面积和 incidentCount
+
       const score = area * 1000 + incidents
       const largestScore = ((largestZone.maxLongitude - largestZone.minLongitude) * Math.cos(largestZone.minLatitude * Math.PI / 180)) * ((largestZone.maxLatitude - largestZone.minLatitude) * 1000 + (largestZone.historicalIncidents || 0))
       if (score > largestScore) {
@@ -1379,15 +1375,13 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     })
   }
 
-  /**
-   * 弹出批量 zone 通知：将过去一段时间内累积的 zones 合并为一个摘要卡片
-   */
+
   const flushBatchZoneNotification = () => {
     batchZoneNotificationTimerRef.current = null
     const zones = pendingBatchZonesRef.current.splice(0)
     if (zones.length === 0) return
 
-    // 1 个：单点通知；>= 2 个：批量摘要卡片
+
     if (zones.length === 1) {
       showSingleZoneNotification(zones[0].zone)
     } else {
@@ -1395,9 +1389,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     }
   }
 
-  /**
-   * 显示单个 zone 通知
-   */
+
   const showSingleZoneNotification = (zone: any) => {
     const notification = createZoneNotificationElement({
       type: 'single',
@@ -1406,9 +1398,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     showNotificationElementWithTimeout(notification, ZONE_NOTIFICATION_DURATION)
   }
 
-  /**
-   * 显示批量 zone 摘要通知
-   */
+
   const showBatchZoneSummaryNotification = (zones: any[]) => {
     const notification = createZoneNotificationElement({
       type: 'batch',
@@ -1417,9 +1407,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     showNotificationElementWithTimeout(notification, ZONE_NOTIFICATION_DURATION)
   }
 
-  /**
-   * 创建 zone 通知元素（单点或批量）
-   */
+
   const createZoneNotificationElement = (data: { type: 'single'; zone: any } | { type: 'batch'; zones: any[] }): HTMLElement => {
     const notification = document.createElement('div')
     const isPortrait = isPortraitViewport()
@@ -1432,7 +1420,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     }
 
     if (data.type === 'single') {
-      // 单点通知
+
       const zone = data.zone
       const riskLevel = zone.riskLevel || 'MEDIUM'
       const riskColorClass = riskLevel === 'HIGH'
@@ -1476,10 +1464,10 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
         </div>
       `
 
-      // 点击通知跳转到该区域
+
       notification.style.cursor = 'pointer'
       notification.onclick = (e) => {
-        // 阻止冒泡到关闭按钮
+
         if ((e.target as HTMLElement).closest('button')) return
         console.log('[Map] Zone notification clicked:', zone)
         console.log('[Map] zone.minLatitude:', zone.minLatitude, 'zone.maxLatitude:', zone.maxLatitude)
@@ -1503,7 +1491,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
         }
       }
     } else {
-      // 批量摘要通知
+
       const zones = data.zones
       const riskCount = { HIGH: 0, MEDIUM: 0, LOW: 0 }
       zones.forEach((z: any) => {
@@ -1547,7 +1535,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
         </div>
       `
 
-      // 绑定按钮事件
+
       const closeBtn = notification.querySelector('.close-notification-btn') as HTMLButtonElement | null
       const viewMapBtn = notification.querySelector('.batch-view-map-btn') as HTMLButtonElement | null
       const viewListBtn = notification.querySelector('.batch-view-list-btn') as HTMLButtonElement | null
@@ -1574,7 +1562,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
       }
       if (viewListBtn) {
         viewListBtn.onclick = () => {
-          // 打开抽屉
+
           setBatchDrawerZones(zones)
           setBatchZoneDrawerOpen(true)
           removeNotification()
@@ -1584,11 +1572,9 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     return notification
   }
 
-  /**
-   * 显示通知元素并定时自动消失
-   */
+
   const showNotificationElementWithTimeout = (notification: HTMLElement, duration: number = 6000) => {
-    // 限制同时显示的通知数量
+
     while (activeNotificationsRef.current.size >= MAX_CONCURRENT_NOTIFICATIONS) {
       const oldest = activeNotificationsRef.current.values().next().value
       if (oldest) {
@@ -1610,7 +1596,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     })
     observer.observe(document.body, { childList: true })
 
-    // 定时自动消失
+
     setTimeout(() => {
       if (document.body.contains(notification)) {
         notification.classList.add('animate-[slideOutUp_0.3s_ease-in]')
@@ -1623,16 +1609,13 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     }, duration)
   }
 
-  /**
-   * 弹出批量通知：将过去一段时间内累积的火点合并为一个摘要卡片
-   * 统一流程：先全量拉取最新火点数据 → 更新地图 → 再飞向（单点 flyTo / 多点 fitBounds）
-   */
+
   const flushBatchNotification = () => {
     batchNotificationTimerRef.current = null
     const points = pendingBatchPointsRef.current.splice(0) // 清空并获取
     if (points.length === 0) return
 
-    // 先全量获取最新火点数据
+
     fetch('/api/fires?sinceHours=24', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
@@ -1660,8 +1643,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
           locationName: point.region || point.locationName || 'Unknown Location'
         }))
 
-        // 合并 pending 队列中的新点（WebSocket 推送时已包含核心字段）
-        // 解决 sinceHours=24 窗口过滤掉"老火点新审批"导致新点不显示的问题
+
         const queuePoints: FirePoint[] = points.map((p) => {
           const pt = p.point as any
           return {
@@ -1689,7 +1671,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
           }
         })
 
-        // 去重合并：fetch 已含的跳过，只追加 fetch 没返回的
+
         const merged: FirePoint[] = [...firePoints]
         for (const qp of queuePoints) {
           if (!merged.some((m) => m.id === qp.id)) {
@@ -1700,7 +1682,6 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
         setLocalFirePoints(merged)
         onFirePointsChange?.(merged)
 
-        // 全量数据已就位，再统一飞向：单点 flyTo，多点 fitBounds
         if (mapInstance.current && mapboxRef.current) {
           if (points.length === 1) {
             mapInstance.current.flyTo({
@@ -1722,7 +1703,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
       })
       .catch(err => console.error('[Map] Failed to load full fire data:', err))
 
-    // 1 个：弹出单点通知；>= 2 个：弹出批量摘要卡片
+
     if (points.length === 1) {
       showSinglePointNotification(points[0].point)
     } else {
@@ -1732,9 +1713,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     setTimeout(() => setShowHUD(false), 5800)
   }
 
-  /**
-   * 显示单点通知（只有 1 个火点时使用）
-   */
+
   const showSinglePointNotification = (point: FirePoint) => {
     const notification = createNotificationElement({
       type: 'single',
@@ -1743,9 +1722,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     showNotificationElementWithTimeout(notification, FIRE_NOTIFICATION_DURATION)
   }
 
-  /**
-   * 显示批量摘要通知卡片
-   */
+
   const showBatchSummaryNotification = (points: FirePoint[]) => {
     const notification = createNotificationElement({
       type: 'batch',
@@ -1754,14 +1731,12 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     showNotificationElementWithTimeout(notification, FIRE_NOTIFICATION_DURATION)
   }
 
-  /**
-   * 创建通知 DOM 元素（单点或批量）
-   */
+
   const createNotificationElement = (data: { type: 'single'; point: FirePoint } | { type: 'batch'; points: FirePoint[] }): HTMLElement => {
     const notification = document.createElement('div')
     const isPortrait = isPortraitViewport()
     notification.className = getFireApprovalNotificationClass(isPortrait)
-    // 根据现有通知数量计算垂直位置（避免重叠）
+
     const offset = activeNotificationsRef.current.size * 90
     if (isPortrait) {
       notification.style.bottom = `${24 + offset}px`
@@ -1770,7 +1745,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     }
 
     if (data.type === 'single') {
-      // 单点通知
+
       const point = data.point
       notification.innerHTML = `
         <div class="relative">
@@ -1806,7 +1781,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
         }
       }
     } else {
-      // 批量摘要通知
+
       const points = data.points
       const regionSet = new Set<string>()
       let highCount = 0
@@ -1855,7 +1830,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
         </div>
       `
 
-      // 绑定按钮事件
+
       const closeBtn = notification.querySelector('.close-notification-btn') as HTMLButtonElement | null
       const viewMapBtn = notification.querySelector('.batch-view-map-btn') as HTMLButtonElement | null
       const viewListBtn = notification.querySelector('.batch-view-list-btn') as HTMLButtonElement | null
@@ -1881,7 +1856,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
       }
       if (viewListBtn) {
         viewListBtn.onclick = () => {
-          // 打开抽屉
+
           setBatchDrawerPoints(points)
           setBatchDrawerOpen(true)
           removeNotification()
@@ -1891,11 +1866,9 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     return notification
   }
 
-  /**
-   * 显示通知元素（添加到 DOM 并管理活跃集合）
-   */
+
   const showNotificationElement = (notification: HTMLElement) => {
-    // 限制同时显示的通知数量：如果超过最大数量，移除最早的通知
+
     while (activeNotificationsRef.current.size >= MAX_CONCURRENT_NOTIFICATIONS) {
       const oldest = activeNotificationsRef.current.values().next().value
       if (oldest) {
@@ -1908,9 +1881,9 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     }
 
     document.body.appendChild(notification)
-    // 将通知加入活跃集合
+
     activeNotificationsRef.current.add(notification)
-    // 通知移除时从活跃集合中删除
+
     const observer = new MutationObserver(() => {
       if (!document.body.contains(notification)) {
         activeNotificationsRef.current.delete(notification)
@@ -1920,17 +1893,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
     observer.observe(document.body, { childList: true })
   }
 
-  /**
-   * 处理单个已批准的火点（已弃用：地图数据更新与飞向统一由 flushBatchNotification 走全量接口完成）
-   * 保留此函数仅为兼容旧调用点；新逻辑不再触发
-   */
-  // const handleApprovedPoint = (point: FirePoint) => {
-  //   // 空实现
-  // }
 
-  /**
-   * 组件卸载时清理批量通知 timer
-   */
   useEffect(() => {
     return () => {
       if (batchNotificationTimerRef.current !== null) {
@@ -1969,15 +1932,15 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
         </div>
       )}
 
-      {/* 批量审批通知抽屉 */}
+      {/* Approval Drawer */}
       {batchDrawerOpen && (
         <div className="fixed inset-0 z-[70] flex">
-          {/* 背景遮罩 */}
+          {/* Background Overlay */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setBatchDrawerOpen(false)}
           />
-          {/* 抽屉面板 */}
+          {/* Drawer Panel */}
           <div className="absolute right-0 top-0 h-full w-[420px] bg-gradient-to-br from-slate-900 to-slate-950 border-l border-slate-700/70 shadow-2xl flex flex-col animate-[slideInRight_0.3s_ease-out]">
             <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
               <div>
@@ -2054,15 +2017,15 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
         </div>
       )}
 
-      {/* 批量高危区审批通知抽屉 */}
-      {batchZoneDrawerOpen && (
+          {/* High-Risk Zone Approval Drawer */}
+          {batchZoneDrawerOpen && (
         <div className="fixed inset-0 z-[70] flex">
-          {/* 背景遮罩 */}
+          {/* Background Overlay */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setBatchZoneDrawerOpen(false)}
           />
-          {/* 抽屉面板 */}
+          {/* Drawer Panel */}
           <div className="absolute right-0 top-0 h-full w-[420px] bg-gradient-to-br from-slate-900 to-slate-950 border-l border-slate-700/70 shadow-2xl flex flex-col animate-[slideInRight_0.3s_ease-out]">
             <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
               <div>
@@ -2320,8 +2283,7 @@ export default function MapRadarView({ vizMode = 'both', firePoints: externalFir
             <li className="flex gap-3">
               <span className="text-slate-400 min-w-32">Confidence</span>
               {(() => {
-                // 使用模块化的 confidence 格式化函数
-                // 后端原始数据可能是字符串("l"/"n"/"h")或0-100范围的数字
+
                 const formatted = formatConfidence(selectedPoint.confidence)
                 const colorClass = formatted.level
                   ? CONFIDENCE_LEVEL_COLOR[formatted.level]

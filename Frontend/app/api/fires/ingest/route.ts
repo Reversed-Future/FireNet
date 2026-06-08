@@ -35,10 +35,7 @@ const regionMap: Record<string, string> = {
   'Australia_NewZealand': 'Australia_NewZealand',
 }
 
-/**
- * 判断 count 是否表示"获取所有数据"（无限）
- * 支持的语义：空字符串 / 'all' / 'infinite' / 'infinity' / '0' / 0
- */
+
 function isUnlimitedCount(value: string | null | undefined): boolean {
   if (value === null || value === undefined) return true
   const v = String(value).trim().toLowerCase()
@@ -59,14 +56,14 @@ export async function POST(request: Request) {
     const rawTypename = (searchParams.get('typename') || '').trim()
     const rawCount = searchParams.get('count')
 
-    // region: 'All' 或空 -> 拉取所有区域
+
     const isAllRegion = !rawRegion || rawRegion.toLowerCase() === 'all'
-    // typename: 'all' 或空 -> 拉取所有卫星
+
     const isAllTypename = !rawTypename || rawTypename.toLowerCase() === 'all'
-    // count: 留空 / 'all' / '0' -> 表示获取所有数据（走分页直到取完）
+
     const unlimitedCount = isUnlimitedCount(rawCount)
 
-    // 校验：当不是 All 时，必须是受支持的 region / typename
+
     let mappedRegions: string[] | null = null
     if (!isAllRegion) {
       const mapped = regionMap[rawRegion]
@@ -94,8 +91,7 @@ export async function POST(request: Request) {
       mappedTypenames = [rawTypename]
     }
 
-    // === 走 bulk 端点（一次性拉取所有匹配的区域/卫星数据） ===
-    // 该路径适用于：All region / All typename / "unlimited" count 的任意组合
+
     if (isAllRegion || isAllTypename || unlimitedCount) {
       const url = new URL('http://localhost:8000/api/fires/bulk-ingest')
       if (mappedRegions) url.searchParams.set('regions', mappedRegions.join(','))
@@ -142,7 +138,7 @@ export async function POST(request: Request) {
       })
     }
 
-    // === 走单次 firms-wfs 端点（保留原行为） ===
+
     const mappedRegion = mappedRegions![0]
     const typename = mappedTypenames![0]
     const count = parseCount(rawCount, 1000)

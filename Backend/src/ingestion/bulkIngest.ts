@@ -2,7 +2,7 @@ import { config } from '../config.js'
 import { supportedRegions, supportedTypenames, fetchWfsRows } from './sources/nasaFirmsWfs.js'
 import { runIngestion } from './pipeline.js'
 
-// 只获取24小时数据的卫星类型
+// Only ingest 24-hour data for supported satellites
 const supportedTypenames24h = new Set([
   'ms:fires_snpp_24hrs',
   'ms:fires_noaa20_24hrs',

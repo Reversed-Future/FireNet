@@ -6,7 +6,7 @@ import Navbar from '../components/Navbar'
 import type { VizMode } from './types'
 import type { FirePoint } from './mock-data'
 
-// 从我们的 API 获取数据
+// Async function to fetch fire points from our API or mock data
 const getFirePoints = async (sinceHours?: number): Promise<FirePoint[]> => {
   try {
     const url = new URL('/api/fires', window.location.origin)
@@ -155,7 +155,7 @@ export default function MapPage() {
     })
   }, [])
 
-  // 应用筛选条件到数据
+
   const applyFilters = useCallback((points: FirePoint[]) => {
     let filtered = [...points]
     if (satelliteType !== 'All') {
@@ -180,7 +180,7 @@ export default function MapPage() {
         return p.confidence?.toString().toLowerCase() === confLower
       })
     }
-    // Brightness (TI4) 范围筛选
+    // Brightness (TI4) 
     const ti4MinNum = parseFloat(ti4Min)
     const ti4MaxNum = parseFloat(ti4Max)
     if (!isNaN(ti4MinNum) || !isNaN(ti4MaxNum)) {
@@ -192,7 +192,7 @@ export default function MapPage() {
         return true
       })
     }
-    // Brightness 2 (TI5) 范围筛选
+    // Brightness 2 (TI5) 
     const ti5MinNum = parseFloat(ti5Min)
     const ti5MaxNum = parseFloat(ti5Max)
     if (!isNaN(ti5MinNum) || !isNaN(ti5MaxNum)) {
@@ -204,7 +204,7 @@ export default function MapPage() {
         return true
       })
     }
-    // FRP (Fire Radiation Power) 范围筛选
+    // FRP (Fire Radiation Power) 
     const frpMinNum = parseFloat(frpMin)
     const frpMaxNum = parseFloat(frpMax)
     if (!isNaN(frpMinNum) || !isNaN(frpMaxNum)) {
@@ -219,14 +219,13 @@ export default function MapPage() {
     setFirePoints(filtered)
   }, [satelliteType, region, confidence, ti4Min, ti4Max, ti5Min, ti5Max, frpMin, frpMax])
 
-  // 接收来自 MapRadarView 的全量数据更新（WebSocket 推送触发）
-  // fireEventApproved / fireEventsUpdated 时 MapRadarView 会重新拉全量并回调此函数
+
   const handleFirePointsChange = useCallback((points: FirePoint[]) => {
     setAllFirePoints(points)
     applyFilters(points)
   }, [applyFilters])
 
-  // 手动刷新数据
+  // Refresh fire points from API or mock data
   const refreshData = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -238,12 +237,12 @@ export default function MapPage() {
       }
       const points = await getFirePoints(sinceHours)
       
-      // 保存到缓存和状态
+
       localStorage.setItem('firePointsCache', JSON.stringify(points))
       setAllFirePoints(points)
       setLastRefresh(new Date())
       
-      // 应用筛选
+
       applyFilters(points)
     } catch (error) {
       console.error('Failed to refresh fire points:', error)
@@ -252,9 +251,9 @@ export default function MapPage() {
     }
   }, [timeWindow, applyFilters])
 
-  // 初始加载和 Time Window 改变时从后端获取
+
   useEffect(() => {
-    // 先从缓存加载
+
     const cachedData = localStorage.getItem('firePointsCache')
     if (cachedData) {
       try {
@@ -266,25 +265,22 @@ export default function MapPage() {
       }
     }
 
-    // 从后端获取最新数据
+
     refreshData()
 
-    // 定期自动刷新（每60秒）
     const intervalId = setInterval(refreshData, 60000)
     return () => clearInterval(intervalId)
   }, [timeWindow, refreshData])
 
-  // 筛选条件改变时只应用筛选，不请求后端
-  // 使用 useRef 避免 allFirePoints 数组引用变化导致的 useEffect 重复触发
+
   const allFirePointsRef = useRef<FirePoint[]>([])
   useEffect(() => {
-    // 保持 ref 与 state 同步
+
     allFirePointsRef.current = allFirePoints
   }, [allFirePoints])
 
   useEffect(() => {
-    // 只依赖筛选条件，不依赖 allFirePoints 本身
-    // 因为 allFirePoints 通过 refreshData 中的 setAllFirePoints 触发更新流程
+
     if (allFirePointsRef.current.length > 0) {
       applyFilters(allFirePointsRef.current)
     }

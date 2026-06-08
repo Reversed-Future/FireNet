@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-// 根据 brightness 计算 level
+
 function calculateLevel(brightness: number, confidence: string | number | null | undefined): 'HIGH' | 'MEDIUM' | 'LOW' {
   if (confidence === null || confidence === undefined) return 'LOW'
   const confStr = String(confidence).toLowerCase()
@@ -16,7 +16,6 @@ function calculateLevel(brightness: number, confidence: string | number | null |
   }
 }
 
-// 将后端数据转换为前端格式
 function transformBackendPoint(point: any) {
   return {
     id: String(point.id),
@@ -60,7 +59,7 @@ export async function GET(request: Request) {
     
     console.log(`[Fire API] Request received: limit=${limit}, offset=${offset}, cursor=${cursor}, sinceHours=${sinceHours}, reviewStatus=${reviewStatus || 'all'}`)
     
-    // 调用我们的后端 API
+
     const url = new URL('http://localhost:8000/api/fires')
     url.searchParams.set('limit', limit)
     url.searchParams.set('offset', offset)
@@ -90,7 +89,7 @@ export async function GET(request: Request) {
     }
 
     const result = await response.json()
-    // 处理后端返回的各种可能的数据格式
+
     let data: any[] = []
     let total: number = 0
     let nextCursor: number | null = null
@@ -123,7 +122,7 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error('Failed to fetch fire points:', error)
-    // 如果后端不可用，返回空数组
+
     return NextResponse.json({
       updatedAt: new Date().toISOString(),
       points: [],

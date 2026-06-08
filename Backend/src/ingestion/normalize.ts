@@ -3,7 +3,7 @@ import type { NormalizedFireEvent, RejectedRecord } from '../domain/fire.js'
 
 type RawRecord = Record<string, unknown>
 
-// 有效的地区列表
+// Valid regions supported by the FIRMS WFS
 const VALID_REGIONS = [
   'Canada',
   'Alaska',
@@ -19,7 +19,7 @@ const VALID_REGIONS = [
   'Australia_NewZealand'
 ]
 
-// 24小时卫星类型
+// Supported satellites for 24-hour data
 const SATELLITE_TYPES_24H = [
   'ms:fires_snpp_24hrs',
   'ms:fires_noaa20_24hrs',
@@ -27,7 +27,7 @@ const SATELLITE_TYPES_24H = [
   'ms:fires_modis_24hrs'
 ]
 
-// 7天卫星类型
+// Supported satellites for 7-day data
 const SATELLITE_TYPES_7D = [
   'ms:fires_snpp_7days',
   'ms:fires_noaa20_7days',
@@ -53,42 +53,42 @@ export function normalizeRecord(
     return reject(rowNumber, 'longitude out of range', raw)
   }
 
-  // 解析source为region和satelliteType
+  // Parse source field to extract region and satellite type
   const parsed = parseSource(source)
   
-  // 转换 confidence 为数值 (0-100 范围，与前端展示规则一致)
+  // Convert confidence to numeric (0-100)
   let confidence: string | null = null
   if (raw.confidence !== undefined) {
     const rawConf = String(raw.confidence).trim().toLowerCase()
     if (rawConf === 'h' || rawConf === 'high') {
-      confidence = '90' // 高置信度
+      confidence = '90' // high confidence
     } else if (rawConf === 'n' || rawConf === 'nominal') {
-      confidence = '70' // 正常置信度
+      confidence = '70' // nominal confidence
     } else if (rawConf === 'l' || rawConf === 'low') {
-      confidence = '50' // 低置信度
+      confidence = '50' // low confidence
     } else {
-      // 如果是数字字符串，保持 0-100 范围
+      // if confidence is a numeric string, convert to 0-100 range
       const numConf = Number(rawConf)
       if (!isNaN(numConf)) {
         if (numConf > 1 && numConf <= 100) {
-          // 已经是 0-100 范围
+          // Already in 0-100 range
           confidence = String(numConf)
         } else if (numConf >= 0 && numConf <= 1) {
-          // 0-1 范围，转换为 0-100
+          // 0-1 range, convert to 0-100
           confidence = String(Math.round(numConf * 100))
         } else {
-          // 超出有效范围，设为默认值
+          // out of valid range, set to default value
           confidence = '70'
         }
       } else {
-        // 无法解析，设为默认值
+        // cannot parse, set to default value
         confidence = '70'
       }
     }
   }
   const confidenceRaw = raw.confidence !== undefined ? String(raw.confidence) : null
 
-  // 提取所有字段
+  // Extract all fields
   const wkt = raw.WKT !== undefined ? String(raw.WKT) : null
   const brightness = parseNumeric(raw.brightness)
   const scan = parseNumeric(raw.scan)
@@ -96,7 +96,7 @@ export function normalizeRecord(
   const acqDate = raw.acq_date !== undefined ? String(raw.acq_date) : null
   const acqTime = raw.acq_time !== undefined ? String(raw.acq_time) : null
 
-  // 正确处理 acq_time 作为时间戳
+  // Correctly handle acq_time as timestamp string
   let acqDatetime: Date | null = null
   if (acqDate && acqTime) {
     acqDatetime = combineDateAndTime(acqDate, acqTime)
@@ -107,13 +107,13 @@ export function normalizeRecord(
   const brightness2 = parseNumeric(raw.brightness_2)
   const frp = parseNumeric(raw.frp)
 
-  // 生成 source_event_id
+  // Generate source_event_id
   const sourceEventId = String(
     firstPresent(raw, 'source_event_id', 'id', 'satellite_id')
       ?? stableEventId(source, latitude, longitude, acqDatetime ?? new Date())
   )
 
-  // 生成唯一键用于去重（把7天和24小时的视为同一个）
+  // Generate unique key for deduplication (7-day and 24-hour data are considered the same)
   const uniqueKey = generateUniqueKey(parsed.satelliteType, latitude, longitude, acqDatetime)
 
   return {
@@ -139,7 +139,7 @@ export function normalizeRecord(
   }
 }
 
-// 解析source字符串
+// Parse source string to extract region and satellite type
 function parseSource(source: string): { region: string | null; satelliteType: string | null } {
   const parts = source.split(':')
 
@@ -147,32 +147,33 @@ function parseSource(source: string): { region: string | null; satelliteType: st
     return { region: null, satelliteType: null }
   }
 
-  // 格式: firms_wfs:{region}:{satelliteType}
+  // Format: firms_wfs:{region}:{satelliteType}
   const regionPart = parts[1]
   const satelliteTypePart = parts.slice(2).join(':')
 
-  // 验证地区
+  // Validate region
   const region = VALID_REGIONS.includes(regionPart) ? regionPart : null
 
-  // 验证卫星类型
+  // Validate satellite type
   const allSatelliteTypes = [...SATELLITE_TYPES_24H, ...SATELLITE_TYPES_7D]
   const satelliteType = allSatelliteTypes.includes(satelliteTypePart) ? satelliteTypePart : null
 
   return { region, satelliteType }
 }
 
-// 生成唯一键 - 用于去重，7天和24小时的视为同一个
+// Generate unique key - for deduplication, 7-day and 24-hour data are considered the same
 function generateUniqueKey(satelliteType: string | null, latitude: number, longitude: number, acqDatetime: Date | null): string | null {
   if (!satelliteType) return null
 
-  // 把7天类型转换为对应的24小时类型
+  // Convert 7-day types to corresponding 24-hour types
   let normalizedType = satelliteType
   if (normalizedType.includes('_7days')) {
     normalizedType = normalizedType.replace('_7days', '_24hrs')
   }
 
+  // Format: {satelliteType}:{latitude}:{longitude}:{acqDate}:{acqTime}
   const dateStr = acqDatetime
-    ? acqDatetime.toISOString().slice(0, 16) // 精确到分钟
+    ? acqDatetime.toISOString().slice(0, 16) // Exact to minute precision
     : 'unknown'
 
   return `${normalizedType}:${latitude.toFixed(4)}:${longitude.toFixed(4)}:${dateStr}`
@@ -197,22 +198,22 @@ function parseNumeric(value: unknown): number | null {
 }
 
 /**
- * 合并日期和时间
- * acq_date: YYYY-MM-DD 格式
- * acq_time: 秒时间戳（如 820）
+ * Combine date and time strings into a Date object
+ * acq_date: YYYY-MM-DD format
+ * acq_time: Second timestamp (e.g., 820)
  */
 function combineDateAndTime(acqDate: string, acqTime: string): Date | null {
   try {
-    // 尝试将 acqTime 解析为秒时间戳
+    // Try to parse acqTime as seconds timestamp
     const seconds = Number(acqTime.trim())
     if (Number.isFinite(seconds) && seconds >= 0) {
-      // 先解析日期部分
+      // Parse date part
       const dateParts = acqDate.split('-').map(Number)
       if (dateParts.length === 3) {
         const [year, month, day] = dateParts
-        // 创建日期，注意月份从0开始
+        // Create date object, note month is 0-based
         const baseDate = new Date(Date.UTC(year, month - 1, day))
-        // 添加秒数
+        // Add seconds timestamp
         baseDate.setTime(baseDate.getTime() + seconds * 1000)
         if (!isNaN(baseDate.getTime())) {
           return baseDate
@@ -220,7 +221,7 @@ function combineDateAndTime(acqDate: string, acqTime: string): Date | null {
       }
     }
   } catch {
-    // 解析失败继续尝试其他方式
+    // Parse failed, try other methods
   }
 
   return null

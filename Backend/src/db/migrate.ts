@@ -4,7 +4,7 @@ async function runMigration() {
   console.log('Starting database migration...')
 
   try {
-    // 第一步：先检查当前表结构，添加新字段
+    // Check and add new columns
     console.log('Adding new columns...')
     await pool.query(`
       DO $$
@@ -28,7 +28,7 @@ async function runMigration() {
     `)
     console.log('✓ New columns added')
 
-    // 添加索引
+    // Add indexes
     console.log('Adding indexes...')
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_fire_events_region ON fire_events(region);
@@ -37,7 +37,7 @@ async function runMigration() {
     `)
     console.log('✓ Indexes added')
 
-    // 更新现有数据，从source字段解析region和satellite_type
+    // Update existing data
     console.log('Updating existing data...')
     const updateResult = await pool.query(`
       UPDATE fire_events
@@ -47,7 +47,7 @@ async function runMigration() {
     `)
     console.log(`✓ Updated ${updateResult.rowCount} records`)
 
-    // 为现有记录生成unique_key（规范化7天为24小时）
+    // Generate unique_key
     console.log('Generating unique keys...')
     const uniqueKeyResult = await pool.query(`
       UPDATE fire_events

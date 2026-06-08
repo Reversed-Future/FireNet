@@ -310,7 +310,7 @@ class ApiClient {
     })
   }
 
-  // 解压gzip数据
+  // Unzip a gzip blob to JSON
   async decompressGzip(blob: Blob): Promise<any> {
     const arrayBuffer = await blob.arrayBuffer()
     const decompressedStream = new Response(arrayBuffer).body?.pipeThrough(
@@ -323,7 +323,7 @@ class ApiClient {
     return JSON.parse(decompressedBlob)
   }
 
-  // 检查文件是否是gzip压缩的
+  // Check if a file is compressed with gzip extension
   isGzipFile(filename: string): boolean {
     return filename.toLowerCase().endsWith('.gz')
   }
